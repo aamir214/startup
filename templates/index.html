@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Startup Security Scanner</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/static/css/home.css">
+  <link rel="stylesheet" href="/static/css/navbar.css">
+  <link rel="stylesheet" href="/static/css/cursor.css">
+</head>
+
+<body>
+
+  <!-- Canvas Background -->
+  <canvas id="canvas"></canvas>
+
+  <!-- Custom Cursor -->
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"></div>
+
+  <!-- Navbar -->
+  <nav class="main-nav">
+    <ul>
+      <li class="active"><button>Home</button></li>
+      <li><button>Scanner</button></li>
+      <li><button>About</button></li>
+      <li><button>Fix Vulnerabilities</button></li>
+      <li><button>Contact</button></li>
+    </ul>
+  </nav>
+
+  <!-- Scan Section -->
+  <section class="scan">
+    <h1>Scan Your Application</h1>
+    <p>Test your website for common security vulnerabilities</p>
+
+    <div class="scan-box">
+      <input type="url" id="targetUrl" placeholder="https://example.com" required>
+      <button onclick="startScan()" id="scanBtn">Start Scan</button>
+    </div>
+
+    <!-- Feature Status Grid (Hidden initially) -->
+    <div class="feature-grid" id="featureGrid" style="display:none;">
+
+      <!-- Crawling -->
+      <div class="feature-card" id="card-crawling">
+        <h3>Crawling</h3>
+        <div class="status-pending" id="status-crawling">Pending</div>
+      </div>
+
+      <!-- Input Checking -->
+      <div class="feature-card" id="card-inputs">
+        <h3>Input Checking</h3>
+        <div class="status-pending" id="status-inputs">Pending</div>
+      </div>
+
+      <!-- Reflected XSS -->
+      <div class="feature-card" id="card-rxss">
+        <h3>Reflected XSS</h3>
+        <div class="status-pending" id="status-rxss">Pending</div>
+      </div>
+
+      <!-- LFI -->
+      <div class="feature-card" id="card-lfi">
+        <h3>Local File Inclusion</h3>
+        <div class="status-pending" id="status-lfi">Pending</div>
+      </div>
+
+      <!-- Stored XSS -->
+      <div class="feature-card" id="card-sxss">
+        <h3>Stored XSS</h3>
+        <div class="status-pending" id="status-sxss">Pending</div>
+      </div>
+
+    </div>
+
+    <!-- Raw JSON Output for Debugging -->
+    <pre id="scanResult" style="margin-top:30px; text-align:left; display:none;"></pre>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="about">
+    <h2>About Us</h2>
+    <p>
+      We help startups and security testers identify and fix real-world
+      web vulnerabilities. Our platform combines automated scanning with
+      manual expert verification to ensure accurate, actionable results.
+    </p>
+  </section>
+
+  <!-- Fix CTA -->
+  <section id="fix" class="fix">
+    <h2>Need Help Fixing a Vulnerability?</h2>
+    <p>
+      Found an issue? Let our security experts guide you with a verified fix.
+    </p>
+    <a href="/request-fix" class="fix-btn">Request a Fix</a>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="contact">
+    <h2>Contact Us</h2>
+    <p>Email: security@startupsec.in</p>
+    <p>WhatsApp: +91 XXXXX XXXXX</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 StartupSec. All rights reserved.</p>
+  </footer>
+
+  <!-- GSAP -->
+  <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+
+  <!-- Scripts -->
+  <script src="/static/js/canvas.js"></script>
+  <script src="/static/js/cursor.js"></script>
+  <script src="/static/js/navbar.js"></script>
+
+  <script>
+    async function startScan() {
+      const url = document.getElementById("targetUrl").value;
+      const resultBox = document.getElementById("scanResult");
+
+      if (!url) {
+        alert("Please enter a URL");
+        return;
+      }
+
+      // Stricter URL validation: must be http/https and have a TLD (e.g. .com, .co, .io)
+      try {
+        const parsed = new URL(url);
+        const proto = parsed.protocol;
+        const hostname = parsed.hostname;
+
+        if (!(proto === "http:" || proto === "https:")) {
+          alert("URL must start with http:// or https://");
+          return;
+        }
+
+        // hostname must contain a dot and end with a valid-looking TLD (2+ letters)
+        if (!/\.[A-Za-z]{2,}$/.test(hostname)) {
+          alert("Please enter a valid domain with a TLD (for example: .com, .co, .io)");
+          return;
+        }
+      } catch (e) {
+        alert("Please enter a valid URL (including http:// or https://)");
+        return;
+      }
+
+      // Reset UI
+      const btn = document.getElementById("scanBtn");
+      const featureGrid = document.getElementById("featureGrid");
+
+      // Show grid
+      featureGrid.style.display = "grid";
+
+      // Set Loading States for all tools
+      updateStatus("crawling", "loading", "Running Katana...");
+      updateStatus("inputs", "loading", "Running ParamSpider + BS4...");
+      updateStatus("rxss", "pending", "Waiting...");
+      updateStatus("lfi", "pending", "Waiting...");
+      updateStatus("sxss", "pending", "Waiting...");
+
+      // Disable button
+      btn.classList.add("btn-loading");
+      btn.textContent = "Scanning...";
+
+      try {
+        const response = await fetch("/scan", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+
+        // Check for errors per tool
+        const errors = data.errors || [];
+        const errorTools = errors.map(e => e.tool);
+
+        // Update Crawling (Katana) status
+        if (errorTools.includes("katana")) {
+          const katanaErr = errors.find(e => e.tool === "katana");
+          updateStatus("crawling", "error", katanaErr.error.substring(0, 60));
+        } else {
+          const urlCount = data.summary?.urls_discovered || 0;
+          updateStatus("crawling", "success", `${urlCount} URLs discovered`);
+        }
+
+        // Update Input Checking (ParamSpider + BS4) status
+        const paramErr = errorTools.includes("paramspider");
+        const bsErr = errorTools.includes("beautifulsoup");
+
+        if (paramErr && bsErr) {
+          updateStatus("inputs", "error", "Both tools failed");
+        } else {
+          const summary = data.summary || {};
+          const getCount = summary.get_endpoints || 0;
+          const postCount = summary.post_endpoints || 0;
+          const totalParams = summary.total_params || 0;
+          let msg = `${getCount} GET + ${postCount} POST endpoints, ${totalParams} params`;
+          if (paramErr) msg += " (ParamSpider failed)";
+          if (bsErr) msg += " (BS4 failed)";
+          updateStatus("inputs", "success", msg);
+        }
+
+        // Raw output
+        resultBox.textContent = JSON.stringify(data, null, 2);
+        resultBox.style.display = "block";
+
+      } catch (err) {
+        console.error(err);
+        updateStatus("crawling", "error", "Connection Failed");
+        updateStatus("inputs", "error", "Connection Failed");
+      } finally {
+        // Re-enable button
+        btn.classList.remove("btn-loading");
+        btn.textContent = "Start Scan";
+      }
+    }
+
+    function updateStatus(feature, type, message) {
+      const statusDiv = document.getElementById(`status-${feature}`);
+      if (!statusDiv) return;
+
+      // Clear existing classes
+      statusDiv.className = '';
+
+      if (type === 'loading') {
+        statusDiv.classList.add('feature-status', 'status-loading');
+        statusDiv.innerHTML = `<div class="spinner-sm"></div> ${message}`;
+      } else if (type === 'success') {
+        statusDiv.classList.add('feature-status', 'status-success');
+        statusDiv.innerText = message;
+      } else if (type === 'error') {
+        statusDiv.classList.add('feature-status', 'status-error');
+        statusDiv.innerText = message;
+      } else {
+        statusDiv.classList.add('feature-status', 'status-pending');
+        statusDiv.innerText = message;
+      }
+
+    }
+
+    // Add Enter key support to scan input
+    document.getElementById("targetUrl").addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        startScan();
+      }
+    });
+  </script>
+
+</body>
+
+</html>

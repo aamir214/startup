@@ -1,0 +1,75 @@
+/* ===== Animated Navbar ===== */
+
+nav.main-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding: 28px 0 20px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 70%, transparent 100%);
+    pointer-events: none;
+}
+
+nav.main-nav ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    gap: 60px;
+    position: relative;
+    pointer-events: auto;
+}
+
+nav.main-nav ul li button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 22px;
+    color: #fff;
+    transition: color 0.25s;
+}
+
+nav.main-nav ul li.active button {
+    color: #00fffc;
+}
+
+nav.main-nav ul li:not(.active):hover button {
+    color: #807E8C;
+}
+
+/* Animated underline */
+nav.main-nav .active-element {
+    --active-element-show: 0;
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    height: 3px;
+    width: 36px;
+    border-radius: 2px;
+    background-color: #00fffc;
+    opacity: var(--active-element-show);
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    nav.main-nav ul {
+        gap: 30px;
+    }
+
+    nav.main-nav ul li button {
+        font-size: 13px;
+    }
+}

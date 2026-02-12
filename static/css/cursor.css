@@ -1,0 +1,52 @@
+/* ===== Custom Cursor ===== */
+
+.cursor-dot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    background: #00fffc;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, opacity 0.3s;
+    opacity: 0;
+}
+
+.cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(0, 255, 252, 0.35);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease, opacity 0.3s;
+    opacity: 0;
+}
+
+/* Hover state when over interactive elements */
+.cursor-dot.hover {
+    transform: translate(-50%, -50%) scale(2);
+    background: #fff;
+}
+
+.cursor-ring.hover {
+    width: 50px;
+    height: 50px;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Hide custom cursor on touch devices */
+@media (hover: none) and (pointer: coarse) {
+
+    .cursor-dot,
+    .cursor-ring {
+        display: none !important;
+    }
+}

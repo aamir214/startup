@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Request Vulnerability Fix</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Fixed Bug Image with Fade -->
+  <div class="bug-image"></div>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Secure Your Application</h1>
+      <p>Request a verified fix for your detected vulnerability</p>
+    </div>
+  </section>
+
+  <!-- Form Section -->
+  <section class="form-section">
+    <h2>Vulnerability Fix Request</h2>
+
+    <form id="fixForm">
+      <label>Company Name <span class="required">*</span></label>
+      <input type="text" required>
+
+      <label>Website / Application URL <span class="required">*</span></label>
+      <input type="url" required>
+
+      <label>Selected Vulnerability <span class="required">*</span></label>
+      <input type="text" value="SQL Injection" readonly required>
+        
+      <label>Affected Endpoint</label>
+      <input type="text" placeholder="/login">
+
+      <label>Tech Stack <span class="required">*</span></label>
+      <select required>
+        <option value="">Select</option>
+        <option>PHP</option>
+        <option>Node.js</option>
+        <option>Django</option>
+        <option>Flask</option>
+        <option>Other</option>
+      </select>
+
+      <label>Contact Email <span class="required">*</span></label>
+      <input type="email" required>
+
+      <label>WhatsApp Number <span class="required">*</span></label>
+      <input type="tel" placeholder="+91XXXXXXXXXX" required>
+
+      <label class="checkbox">
+        <input type="checkbox" required>
+        I confirm that I own this application or have permission to test and modify it. <span class="required">*</span>
+      </label>
+
+      <button type="submit">Submit Request</button>
+    </form>
+  </section>
+
+<!-- Success Modal -->
+<div class="overlay hidden" id="overlay"></div>
+<div class="modal hidden" id="successModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <h3 id="modalTitle">🎉 Congratulations! 🎉</h3>
+  <p>You're one step closer to securing your application.</p>
+  <button id="closeModal">OK</button>
+</div>
+
+<script>
+  (function(){
+    const form = document.getElementById("fixForm");
+    const overlay = document.getElementById('overlay');
+    const modal = document.getElementById('successModal');
+    const closeBtn = document.getElementById('closeModal');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Get all form fields (inputs, selects, checkboxes) in order
+    const formFields = [
+      ...form.querySelectorAll('input[type="text"], input[type="url"], input[type="email"], input[type="tel"], select, input[type="checkbox"]')
+    ];
+
+    function showModal(){
+      overlay.classList.remove('hidden');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+
+    function hideModal(){
+      overlay.classList.add('hidden');
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      form.reset();
+    }
+
+    function collectFormData(){
+      const allInputs = form.querySelectorAll('input[type="text"], input[type="url"], input[type="email"], input[type="tel"], select');
+      const data = {
+        company_name: allInputs[0].value,
+        website_url: allInputs[1].value,
+        vulnerability: allInputs[2].value,
+        endpoint: allInputs[3].value,
+        tech_stack: form.querySelector('select').value,
+        contact_email: form.querySelector('input[type="email"]').value,
+        whatsapp_number: form.querySelector('input[type="tel"]').value
+      };
+      return data;
+    }
+
+    // Handle Enter key to navigate between fields
+    formFields.forEach((field, index) => {
+      field.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          
+          // If this is the last field, submit the form
+          if(index === formFields.length - 1){
+            form.dispatchEvent(new Event('submit'));
+          } else {
+            // Move to next field
+            const nextField = formFields[index + 1];
+            nextField.focus();
+            if(nextField.type === 'text' || nextField.type === 'url' || nextField.type === 'email' || nextField.type === 'tel'){
+              nextField.select();
+            }
+          }
+        }
+      });
+    });
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      const data = collectFormData();
+      
+      fetch('/submit-form', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(result => {
+        showModal();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+      })
+      .catch(err => {
+        console.error('Error:', err);
+        alert('Error submitting form. Check console.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+      });
+    });
+
+    closeBtn.addEventListener('click', hideModal);
+    overlay.addEventListener('click', hideModal);
+
+    // keyboard: close on Escape
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && !modal.classList.contains('hidden')){
+        hideModal();
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
