@@ -31,9 +31,17 @@ def run_paramspider(target_url, timeout=90):
     # Find paramspider
     paramspider_path = shutil.which("paramspider")
     if not paramspider_path:
-        raise FileNotFoundError(
-            "paramspider not found. Install with: pip install paramspider"
-        )
+        # Check in .venv/bin/
+        venv_bin = os.path.join(os.getcwd(), ".venv", "bin", "paramspider")
+        if os.path.exists(venv_bin):
+            paramspider_path = venv_bin
+        # Check in .venv/bin/paramspider (if running from root)
+        elif os.path.exists(".venv/bin/paramspider"):
+             paramspider_path = ".venv/bin/paramspider"
+        else:
+            raise FileNotFoundError(
+                "paramspider not found. Install with: pip install paramspider"
+            )
 
     cmd = [
         paramspider_path,

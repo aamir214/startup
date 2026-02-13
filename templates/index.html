@@ -15,6 +15,66 @@
   <link rel="stylesheet" href="/static/css/home.css">
   <link rel="stylesheet" href="/static/css/navbar.css">
   <link rel="stylesheet" href="/static/css/cursor.css">
+  <style>
+    /* Inline styles for auth for now */
+    .auth-toggle-btn {
+      background: #333;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+      width: 40px;
+      height: 48px;
+      /* Match input height */
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 10px;
+      margin-right: -10px;
+      /* Pull closer to button depending on layout */
+    }
+
+    .auth-toggle-btn:hover {
+      background: #444;
+    }
+
+    .auth-fields {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .auth-fields input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: white;
+      font-size: 1rem;
+      width: 250px;
+    }
+
+    .auth-fields input:focus {
+      border-color: #646cff;
+      /* Or your theme color */
+      outline: none;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -44,7 +104,14 @@
 
     <div class="scan-box">
       <input type="url" id="targetUrl" placeholder="https://example.com" required>
+      <button id="toggleAuthBtn" class="auth-toggle-btn" title="Add Login Credentials">+</button>
       <button onclick="startScan()" id="scanBtn">Start Scan</button>
+    </div>
+
+    <!-- Auth Fields (Hidden initially) -->
+    <div id="authFields" class="auth-fields" style="display: none;">
+      <input type="text" id="authUsername" placeholder="Username / Email">
+      <input type="password" id="authPassword" placeholder="Password">
     </div>
 
     <!-- Feature Status Grid (Hidden initially) -->
@@ -126,9 +193,30 @@
   <script src="/static/js/navbar.js"></script>
 
   <script>
+    // Auth Toggle Logic
+    const authToggleBtn = document.getElementById('toggleAuthBtn');
+    const authFields = document.getElementById('authFields');
+
+    authToggleBtn.addEventListener('click', () => {
+      if (authFields.style.display === 'none') {
+        authFields.style.display = 'flex';
+        authToggleBtn.textContent = '-';
+      } else {
+        authFields.style.display = 'none';
+        authToggleBtn.textContent = '+';
+        // Clear fields when hiding
+        document.getElementById('authUsername').value = '';
+        document.getElementById('authPassword').value = '';
+      }
+    });
+
     async function startScan() {
       const url = document.getElementById("targetUrl").value;
       const resultBox = document.getElementById("scanResult");
+
+      // Auth data
+      const username = document.getElementById("authUsername").value;
+      const password = document.getElementById("authPassword").value;
 
       if (!url) {
         alert("Please enter a URL");
@@ -180,7 +268,11 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ url })
+          body: JSON.stringify({
+            url,
+            username: username || null,
+            password: password || null
+          })
         });
 
         const data = await response.json();

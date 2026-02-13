@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-def _scan_single_page(url):
+def _scan_single_page(url, cookies=None):
     """
     Fetch a single page and extract all forms and their inputs.
 
@@ -19,7 +19,7 @@ def _scan_single_page(url):
     endpoints = []
 
     try:
-        response = requests.get(url, timeout=10, verify=False)
+        response = requests.get(url, timeout=10, verify=False, cookies=cookies)
         response.raise_for_status()
     except Exception as e:
         print(f"[form_scanner] Error fetching {url}: {e}")
@@ -115,13 +115,14 @@ def _scan_single_page(url):
     return endpoints
 
 
-def run_form_scanner(urls, max_workers=10):
+def run_form_scanner(urls, max_workers=10, cookies=None):
     """
     Scan multiple URLs for forms and inputs using BeautifulSoup.
 
     Args:
         urls: List of URLs to scan (typically from Katana output)
         max_workers: Max concurrent requests (default 10)
+        cookies: Optional dictionary of cookies
 
     Returns:
         list[dict]: Normalized endpoint dicts
@@ -134,7 +135,7 @@ def run_form_scanner(urls, max_workers=10):
     # Use ThreadPoolExecutor for concurrent fetching
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_url = {
-            executor.submit(_scan_single_page, url): url
+            executor.submit(_scan_single_page, url, cookies): url
             for url in urls
         }
 

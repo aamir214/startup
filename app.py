@@ -10,6 +10,7 @@ from scanner.katana_scanner import run_katana
 from scanner.paramspider_scanner import run_paramspider
 from scanner.form_scanner import run_form_scanner
 from scanner.normalizer import normalize
+from scanner.auth import login_and_get_cookies
 
 app = Flask(__name__)
 
@@ -67,6 +68,8 @@ def request_fix():
 def scan():
     data = request.get_json()
     target_url = data.get("url")
+    username = data.get("username")
+    password = data.get("password")
 
     if not target_url or not target_url.startswith("http"):
         return jsonify({"error": "Invalid URL"}), 400
@@ -75,6 +78,16 @@ def scan():
     katana_urls = []
     paramspider_endpoints = []
     form_endpoints = []
+    cookies = None
+
+    # Step 0: Authentication (if requested)
+    if username and password:
+        print(f"\n[STEP 0] Performing login for user: {username}")
+        cookies = login_and_get_cookies(target_url, username, password)
+        if cookies:
+            print(f"[STEP 0] Auth successful, captured cookies.")
+        else:
+            print(f"[STEP 0] Auth failed, proceeding without authentication.")
 
     # Step 1: Katana — Endpoint Discovery
     print(f"\n{'='*50}")
@@ -83,7 +96,7 @@ def scan():
 
     try:
         print("\n[STEP 1] Running Katana for endpoint discovery...")
-        katana_urls = run_katana(target_url)
+        katana_urls = run_katana(target_url, cookies=cookies)
     except FileNotFoundError as e:
         errors.append({"tool": "katana", "error": str(e)})
         print(f"[STEP 1] Katana not found: {e}")
@@ -109,7 +122,7 @@ def scan():
         # Use Katana URLs if available, otherwise just scan the target
         urls_to_scan = katana_urls if katana_urls else [target_url]
         print(f"\n[STEP 3] Running form scanner on {len(urls_to_scan)} URLs...")
-        form_endpoints = run_form_scanner(urls_to_scan)
+        form_endpoints = run_form_scanner(urls_to_scan, cookies=cookies)
     except Exception as e:
         errors.append({"tool": "beautifulsoup", "error": str(e)})
         print(f"[STEP 3] Form scanner error: {e}")
