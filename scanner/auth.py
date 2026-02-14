@@ -1,4 +1,5 @@
 import requests
+from .utils import check_url_exists
 
 def login_and_get_cookies(login_url, username, password):
     """
@@ -10,6 +11,12 @@ def login_and_get_cookies(login_url, username, password):
         "password": password
     }
     
+    # URL Existence Check
+    print(f"[auth] Checking if login page {login_url} is reachable...")
+    if not check_url_exists(login_url):
+        print(f"[auth] Login URL {login_url} is unreachable.")
+        return None
+
     try:
         print(f"[auth] Attempting login at {login_url} for {username}")
         # We use a post request for login

@@ -11,6 +11,7 @@ from scanner.paramspider_scanner import run_paramspider
 from scanner.form_scanner import run_form_scanner
 from scanner.normalizer import normalize
 from scanner.auth import login_and_get_cookies
+from scanner.utils import check_url_exists
 
 app = Flask(__name__)
 
@@ -72,7 +73,17 @@ def scan():
     password = data.get("password")
 
     if not target_url or not target_url.startswith("http"):
-        return jsonify({"error": "Invalid URL"}), 400
+        return jsonify({"error": "Invalid URL format"}), 400
+
+    # Early URL existence check
+    print(f"[SCAN] Verifying target URL: {target_url}")
+    if not check_url_exists(target_url):
+        print(f"[SCAN] Target URL is unreachable: {target_url}")
+        return jsonify({
+            "error": "Target URL is unreachable",
+            "target": target_url,
+            "success": False
+        }), 404
 
     errors = []
     katana_urls = []

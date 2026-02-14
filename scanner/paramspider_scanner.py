@@ -8,6 +8,7 @@ import shutil
 import os
 import glob
 from urllib.parse import urlparse, parse_qs
+from .utils import check_url_exists
 
 
 def run_paramspider(target_url, timeout=90):
@@ -26,6 +27,12 @@ def run_paramspider(target_url, timeout=90):
     domain = parsed.hostname
     if not domain:
         print(f"[paramspider] Could not extract domain from {target_url}")
+        return []
+
+    # URL Existence Check
+    print(f"[paramspider] Checking if {target_url} is reachable...")
+    if not check_url_exists(target_url):
+        print(f"[paramspider] Target {target_url} is unreachable. Skipping scan.")
         return []
 
     # Find paramspider
@@ -73,7 +80,8 @@ def run_paramspider(target_url, timeout=90):
             output_file = possible_files[0]
         else:
             print(f"[paramspider] No output file found for {domain}")
-            print(f"[paramspider] stdout: {result.stdout[:500]}")
+            if result.stdout:
+                print(f"[paramspider] stdout: {result.stdout[:500]}")
             return []
 
     endpoints = []

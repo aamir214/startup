@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import os
 from urllib.parse import urlparse
+from .utils import check_url_exists
 
 
 def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=False):
@@ -40,6 +41,12 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=False):
             raise FileNotFoundError(
                 "katana not found. Install with: go install github.com/projectdiscovery/katana/cmd/katana@latest"
             )
+
+    # URL Existence Check
+    print(f"[katana] Checking if {target_url} is reachable...")
+    if not check_url_exists(target_url):
+        print(f"[katana] Target {target_url} is unreachable. Skipping scan.")
+        return []
 
     cmd = [
         katana_path,
@@ -88,7 +95,7 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=False):
     except subprocess.TimeoutExpired as e:
         print(f"[katana] Timed out after {timeout}s for {target_url}")
         # Return whatever we captured so far
-        if e.stdout is not None:
+        if e.stdout:
             stdout = e.stdout if isinstance(e.stdout, str) else e.stdout.decode()
         
         if stdout:
