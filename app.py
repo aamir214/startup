@@ -12,6 +12,8 @@ from scanner.form_scanner import run_form_scanner
 from scanner.normalizer import normalize
 from scanner.auth import login_and_get_cookies
 from scanner.utils import check_url_exists
+from scanner.stored_xss_scanner import run_stored_xss_scan
+import requests
 
 app = Flask(__name__)
 
@@ -142,6 +144,26 @@ def scan():
     # Step 4: Normalize
     print("\n[STEP 4] Normalizing results...")
     result = normalize(target_url, katana_urls, paramspider_endpoints, form_endpoints)
+
+    # Step 5: Stored XSS Scan
+    try:
+        print("\n[STEP 5] Running Stored XSS scan...")
+        # Create a session and load cookies if available
+        session = requests.Session()
+        if cookies:
+            session.cookies.update(cookies)
+        
+        stored_findings = run_stored_xss_scan(
+            target_url,
+            result["endpoints"],
+            session,
+            discovered_urls=result["discovered_urls"]
+        )
+        result["stored_xss"] = stored_findings
+    except Exception as e:
+        errors.append({"tool": "stored_xss", "error": str(e)})
+        print(f"[STEP 5] Stored XSS scanner error: {e}")
+        traceback.print_exc()
 
     # Attach errors if any tools failed
     if errors:

@@ -307,6 +307,24 @@
           updateStatus("inputs", "success", msg);
         }
 
+        // Update Stored XSS status
+        if (errorTools.includes("stored_xss")) {
+          const sxssErr = errors.find(e => e.tool === "stored_xss");
+          updateStatus("sxss", "error", sxssErr.error.substring(0, 60));
+        } else {
+          const findings = data.stored_xss || [];
+          if (findings.length > 0) {
+            const highConfidenceCount = findings.filter(f => f.confidence === "High").length;
+            let msg = `${findings.length} findings`;
+            if (highConfidenceCount > 0) {
+              msg = `⚠️ ${highConfidenceCount} HIGH RISK!`;
+            }
+            updateStatus("sxss", "success", msg);
+          } else {
+            updateStatus("sxss", "success", "No vulnerabilities found");
+          }
+        }
+
         // Raw output
         resultBox.textContent = JSON.stringify(data, null, 2);
         resultBox.style.display = "block";
