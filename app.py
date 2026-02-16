@@ -13,6 +13,7 @@ from scanner.normalizer import normalize
 from scanner.auth import login_and_get_cookies
 from scanner.utils import check_url_exists
 from scanner.stored_xss_scanner import run_stored_xss_scan
+from scanner.js_parser import extract_api_endpoints_from_js
 import requests
 
 app = Flask(__name__)
@@ -141,9 +142,25 @@ def scan():
         print(f"[STEP 3] Form scanner error: {e}")
         traceback.print_exc()
 
+    # Step 3.5: JS Parsing — Extract hidden API endpoints
+    js_endpoints = []
+    try:
+        js_urls = [u for u in katana_urls if u.endswith(".js")]
+        if js_urls:
+            print(f"\n[STEP 3.5] Running JS parser on {len(js_urls)} files...")
+            # Use a session for JS parsing
+            parsing_session = requests.Session()
+            if cookies:
+                parsing_session.cookies.update(cookies)
+            js_endpoints = extract_api_endpoints_from_js(js_urls, target_url, session=parsing_session)
+    except Exception as e:
+        errors.append({"tool": "js_parser", "error": str(e)})
+        print(f"[STEP 3.5] JS parser error: {e}")
+        traceback.print_exc()
+
     # Step 4: Normalize
     print("\n[STEP 4] Normalizing results...")
-    result = normalize(target_url, katana_urls, paramspider_endpoints, form_endpoints)
+    result = normalize(target_url, katana_urls, paramspider_endpoints, form_endpoints + js_endpoints)
 
     # Step 5: Stored XSS Scan
     try:

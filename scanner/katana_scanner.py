@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 from .utils import check_url_exists
 
 
-def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=False):
+def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=True):
     """
     Run katana against a target URL to discover endpoints.
 
@@ -58,7 +58,7 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=False):
     ]
 
     if headless:
-        cmd.append("-hl")
+        cmd.append("-headless")
 
     # Smart Scoping: If the URL has a path (like /user), stay within that path
     # This avoids crawling the entire domain on large sites like GitHub.
