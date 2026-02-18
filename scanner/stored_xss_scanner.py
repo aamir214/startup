@@ -67,7 +67,9 @@ def run_stored_xss_scan(base_url, endpoints, session, discovered_urls=None, max_
                     "url": url,
                     "confidence": "High",
                     "reason": "Payload rendered unescaped in response",
-                    "payload": payload
+                    "payload": payload,
+                    "vulnerability_type": "Stored XSS",
+                    "impact": "Stored XSS allows attackers to execute malicious scripts in the browsers of all users who visit the affected page, leading to session hijacking and data theft."
                 })
             elif payload_id in r.text:
                 # Payload ID found but maybe escaped or modified
@@ -76,7 +78,9 @@ def run_stored_xss_scan(base_url, endpoints, session, discovered_urls=None, max_
                     "url": url,
                     "confidence": "Low",
                     "reason": "Payload ID found but might be escaped",
-                    "payload": payload
+                    "payload": payload,
+                    "vulnerability_type": "Stored XSS",
+                    "impact": "Stored XSS (escaped) might still pose a risk if the escaping is incomplete or can be bypassed."
                 })
         except Exception as e:
             print(f"[STORED-XSS] Error checking {url}: {e}")

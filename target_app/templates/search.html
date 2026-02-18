@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Search Users</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <nav><a href="/">Home</a></nav>
+    <h2>User Directory Search</h2>
+    <form action="/search" method="get">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search username...">
+        <button type="submit">Search</button>
+    </form>
+
+    <div class="results">
+        <h3>Results:</h3>
+        <ul>
+            {% for username, bio in results %}
+            <li><strong>{{ username }}</strong>: {{ bio }}</li>
+            {% else %}
+            <li>No users found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+
+</html>

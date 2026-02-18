@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Feedback</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <nav><a href="/">Home</a></nav>
+    <h2>Submit Your Feedback</h2>
+    <form action="/feedback" method="post">
+        <textarea name="content" placeholder="Share your thoughts..."></textarea><br>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div class="feedbacks">
+        <h3>Previous Feedback:</h3>
+        {% for content in feedbacks %}
+        <div class="feedback-item">
+            <!-- VULNERABILITY: Unsafe rendering of content -->
+            {{ content[0] | safe }}
+        </div>
+        <hr>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

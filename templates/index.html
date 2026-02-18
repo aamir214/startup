@@ -74,10 +74,108 @@
         transform: translateY(0);
       }
     }
+
+    /* Vulnerability Results UI */
+    .vuln-results {
+      margin-top: 50px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 25px;
+      padding: 20px 0;
+    }
+
+    .vuln-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 25px;
+      text-align: left;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vuln-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: #ff4444;
+      transform: translateY(-5px);
+    }
+
+    .vuln-card h4 {
+      color: #ff4444;
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vuln-card .endpoint {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 15px;
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .vuln-card .impact {
+      font-style: italic;
+      font-weight: bold;
+      color: #ff8888;
+      margin-bottom: 20px;
+      line-height: 1.4;
+      display: block;
+    }
+
+    .vuln-card .fix-it-btn {
+      display: inline-block;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .vuln-card .fix-it-btn:hover {
+      filter: brightness(1.2);
+      box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+    }
+
+    .vuln-stats {
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .vuln-stats h2 {
+      margin: 0;
+      color: #ff4444;
+    }
   </style>
 </head>
 
 <body>
+
+  <!-- Preloader -->
+  <div id="preloader">
+    <div class="preloader-content">
+      <h1 class="gradient-text">Scan ur site</h1>
+      <p>and fix what you need</p>
+    </div>
+  </div>
 
   <!-- Canvas Background -->
   <canvas id="canvas"></canvas>
@@ -147,7 +245,19 @@
         <div class="status-pending" id="status-sxss">Pending</div>
       </div>
 
+      <!-- SQLi -->
+      <div class="feature-card" id="card-sqli">
+        <h3>SQL Injection</h3>
+        <div class="status-pending" id="status-sqli">Pending</div>
+      </div>
+
     </div>
+
+    <!-- Vulnerability Results -->
+    <div id="vulnStats" class="vuln-stats">
+      <h2 id="vulnTotalText">Found 0 Vulnerabilities</h2>
+    </div>
+    <div id="vulnResults" class="vuln-results"></div>
 
     <!-- Raw JSON Output for Debugging -->
     <pre id="scanResult" style="margin-top:30px; text-align:left; display:none;"></pre>
@@ -155,12 +265,33 @@
 
   <!-- About -->
   <section id="about" class="about">
-    <h2>About Us</h2>
-    <p>
-      We help startups and security testers identify and fix real-world
-      web vulnerabilities. Our platform combines automated scanning with
-      manual expert verification to ensure accurate, actionable results.
-    </p>
+    <div class="about-container">
+      <div class="about-content">
+        <h2>About Us</h2>
+        <p>
+          StartupSec is a premier cybersecurity firm dedicated to fortifying the digital foundations of modern
+          enterprises and emerging startups. Our mission is to democratize high-end security, ensuring that every
+          business, regardless of size, has access to the defenses normally reserved for Fortune 500 companies.
+        </p>
+        <p>
+          We combine cutting-edge automation with human expertise. Our platform doesn't just find bugs; it understands
+          the business logic and context behind them. By integrating seamless scanning workflows with expert-led
+          remediation, we provide more than just a list of vulnerabilities—we provide a clear path to security.
+        </p>
+        <p>
+          Based in India, we serve a global clientele, helping them navigate the complex landscape of web security,
+          compliance, and risk management with confidence and transparency.
+        </p>
+      </div>
+      <div class="about-images">
+        <div class="img-wrapper">
+          <img src="/static/images/security_shield.png" alt="Advanced Cyber Defense">
+        </div>
+        <div class="img-wrapper">
+          <img src="/static/images/team_collab.png" alt="Our Expert Team">
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Fix CTA -->
@@ -170,6 +301,129 @@
       Found an issue? Let our security experts guide you with a verified fix.
     </p>
     <a href="/request-fix" class="fix-btn">Request a Fix</a>
+  </section>
+
+  <!-- How It Works (Process) -->
+  <section id="process" class="process">
+    <div class="section-header">
+      <span class="badge">Workflow</span>
+      <h2>Our Precision Process</h2>
+      <p>Strategic, automated, and thorough—from initial crawl to verified fix.</p>
+    </div>
+    <div class="process-grid">
+      <div class="process-step">
+        <div class="step-num">01</div>
+        <h3>Reconnaissance</h3>
+        <p>Using Katana & ParamSpider to map every endpoint and hidden parameter.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">02</div>
+        <h3>Analysis</h3>
+        <p>AI-driven engine analyzes patterns for XSS, LFI, and logic flaws.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">03</div>
+        <h3>Verification</h3>
+        <p>Our experts manually verify high-risk findings to eliminate false positives.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">04</div>
+        <h3>Remediation</h3>
+        <p>Receive a comprehensive report with actionable, verified fixes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vulnerabilities Covered (Interactive Section) -->
+  <section id="vulnerabilities" class="vulnerabilities">
+    <div class="section-header">
+      <span class="badge vibrant-badge">Full Coverage</span>
+      <h2 class="vibrant-title">Comprehensive Protection</h2>
+      <p>Deep-layer analysis for the most critical web security threats.</p>
+    </div>
+
+    <div class="vulnerability-wrapper">
+      <div class="vulnerability-track">
+        <!-- Card 1: Injection -->
+        <div class="v-card glass vibrant-card" data-glow-color="#00ffcc">
+          <div class="v-icon-box">
+            <img src="/static/images/vulnerability_icon.png" alt="Injections" class="v-icon">
+          </div>
+          <h3>Injection Attacks</h3>
+          <p class="v-desc">Detecting SQLi, NoSQLi, and OS Command injections by fuzzing every input field with
+            multi-step payloads.</p>
+          <div class="v-impact">
+            <strong>Impact:</strong> Full database compromise, data exfiltration, and unauthorized server command
+            execution.
+          </div>
+        </div>
+
+        <!-- Card 2: XSS -->
+        <div class="v-card glass vibrant-card" data-glow-color="#cc00ff">
+          <div class="v-icon-box">
+            <span class="v-mini-icon">XSS</span>
+          </div>
+          <h3>Cross-Site Scripting</h3>
+          <p class="v-desc">Identifying Reflected, Stored, and DOM-based XSS flaws that allow script injection into user
+            sessions.</p>
+          <div class="v-impact">
+            <strong>Impact:</strong> Cookie theft, session hijacking, phishing redirects, and account takeover.
+          </div>
+        </div>
+
+        <!-- Card 3: Broken Auth -->
+        <div class="v-card glass vibrant-card" data-glow-color="#0066ff">
+          <div class="v-icon-box">
+            <span class="v-mini-icon">AUTH</span>
+          </div>
+          <h3>Broken Authentication</h3>
+          <p class="v-desc">Validating session tokens, JWT signatures, and brute-force protection to ensure identity
+            integrity.</p>
+          <div class="v-impact">
+            <strong>Impact:</strong> Identity theft, bypassing 2FA, and unauthorized access to administrative functions.
+          </div>
+        </div>
+
+        <!-- Card 4: Logic Flaws -->
+        <div class="v-card glass vibrant-card" data-glow-color="#ffcc00">
+          <div class="v-icon-box">
+            <img src="/static/images/workflow_icon.png" alt="Logic" class="v-icon">
+          </div>
+          <h3>Business Logic Flaws</h3>
+          <p class="v-desc">Analyzing multi-step workflows to find flaws in checkout processes, rate limiting, and
+            access controls.</p>
+          <div class="v-impact">
+            <strong>Impact:</strong> Financial loss, price manipulation, and bypassing core application restrictions.
+          </div>
+        </div>
+
+        <!-- Card 5: LFI / RFI -->
+        <div class="v-card glass vibrant-card" data-glow-color="#ff4444">
+          <div class="v-icon-box">
+            <span class="v-mini-icon">FILE</span>
+          </div>
+          <h3>Local File Inclusion</h3>
+          <p class="v-desc">Scanning for directory traversal vulnerabilities that could lead to sensitive file
+            disclosure.</p>
+          <div class="v-impact">
+            <strong>Impact:</strong> Exposure of source code, configuration files (.env), and potential Remote Code
+            Execution (RCE).
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Section -->
+  <section class="trust">
+    <div class="trust-container glass">
+      <h3>Trusted by Startups Worldwide</h3>
+      <div class="trust-badges">
+        <div class="badge-item">OWASP Compliant</div>
+        <div class="badge-item">GDPR Ready</div>
+        <div class="badge-item">SOC2 Expert Guidance</div>
+      </div>
+    </div>
   </section>
 
   <!-- Contact -->
@@ -184,8 +438,9 @@
     <p>&copy; 2026 StartupSec. All rights reserved.</p>
   </footer>
 
-  <!-- GSAP -->
+  <!-- GSAP & ScrollTrigger -->
   <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+  <script src="https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js"></script>
 
   <!-- Scripts -->
   <script src="/static/js/canvas.js"></script>
@@ -193,6 +448,132 @@
   <script src="/static/js/navbar.js"></script>
 
   <script>
+    // GSAP Scroll Animations
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Entrance Animation (Preloader)
+    window.addEventListener('load', () => {
+      const tl = gsap.timeline();
+
+      tl.to(".preloader-content", {
+        opacity: 0,
+        y: -20,
+        duration: 1,
+        delay: 1.5,
+        ease: "power2.inOut"
+      })
+        .to("#preloader", {
+          clipPath: "circle(0% at 50% 50%)",
+          duration: 1.2,
+          ease: "expo.inOut"
+        }, "-=0.2")
+        .from("nav", { y: -100, opacity: 0, duration: 0.8 }, "-=0.5")
+        .from(".scan h1", { y: 30, opacity: 0, duration: 0.8 }, "-=0.6")
+        .from(".scan p", { y: 20, opacity: 0, duration: 0.8 }, "-=0.7")
+        .from(".scan-box", { y: 20, opacity: 0, duration: 0.8 }, "-=0.7");
+    });
+
+    // Fade-in sections on scroll
+    gsap.utils.toArray('section').forEach(section => {
+      gsap.fromTo(section,
+        { opacity: 0, y: 50 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          scrollTrigger: {
+            trigger: section,
+            start: "top 85%",
+            toggleActions: "play none none reverse"
+          }
+        }
+      );
+    });
+
+    // Bento item stagger
+    gsap.from(".bento-item", {
+      opacity: 0,
+      scale: 0.9,
+      duration: 0.8,
+      stagger: 0.1,
+      scrollTrigger: {
+        trigger: ".bento-grid",
+        start: "top 80%"
+      }
+    });
+
+    // Custom Interactive Vulnerability Section
+    const vWrapper = document.querySelector('.vulnerability-wrapper');
+    if (vWrapper) {
+      const vTrack = document.querySelector('.vulnerability-track');
+      const vCards = document.querySelectorAll('.v-card');
+
+      vWrapper.addEventListener('mousemove', (e) => {
+        const bounds = vWrapper.getBoundingClientRect();
+        const mouseX = e.clientX - bounds.left;
+        const width = bounds.width;
+
+        // Calculate percentage (0 to 1)
+        const p = mouseX / width;
+
+        // Move track from right to left (parallax effect)
+        // Max travel: track_width - wrapper_width
+        const trackWidth = vTrack.scrollWidth;
+        const wrapperWidth = vWrapper.clientWidth;
+        const maxMove = trackWidth - wrapperWidth;
+
+        if (maxMove > 0) {
+          gsap.to(vTrack, {
+            x: -p * maxMove,
+            duration: 0.6,
+            ease: "sine.out"
+          });
+        }
+
+        // Scale and glow effect for cards near cursor
+        vCards.forEach(card => {
+          const cardBounds = card.getBoundingClientRect();
+          const cardCenter = cardBounds.left + cardBounds.width / 2;
+          const dist = Math.abs(e.clientX - cardCenter);
+          const maxDist = 300;
+
+          if (dist < maxDist) {
+            const scale = 1 + (1 - dist / maxDist) * 0.15;
+            const opacity = 0.6 + (1 - dist / maxDist) * 0.4;
+            const glow = (1 - dist / maxDist) * 20;
+            const glowColor = card.dataset.glowColor || "#00ffcc";
+
+            gsap.to(card, {
+              scale: scale,
+              opacity: 1,
+              filter: `drop-shadow(0 0 ${glow}px ${glowColor})`,
+              duration: 0.4,
+              overwrite: 'auto'
+            });
+          } else {
+            gsap.to(card, {
+              scale: 1,
+              opacity: 0.7,
+              filter: `drop-shadow(0 0 0px transparent)`,
+              duration: 0.4,
+              overwrite: 'auto'
+            });
+          }
+        });
+      });
+
+      vWrapper.addEventListener('mouseleave', () => {
+        vCards.forEach(card => {
+          gsap.to(card, {
+            scale: 1,
+            opacity: 0.8,
+            filter: `drop-shadow(0 0 0px transparent)`,
+            duration: 0.6
+          });
+        });
+      });
+    }
+
     // Auth Toggle Logic
     const authToggleBtn = document.getElementById('toggleAuthBtn');
     const authFields = document.getElementById('authFields');
@@ -234,9 +615,11 @@
           return;
         }
 
-        // hostname must contain a dot and end with a valid-looking TLD (2+ letters)
-        if (!/\.[A-Za-z]{2,}$/.test(hostname)) {
-          alert("Please enter a valid domain with a TLD (for example: .com, .co, .io)");
+        // Allow localhost or local IP addresses (e.g. 127.0.0.1)
+        const isLocal = hostname === "localhost" || /^(127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
+
+        if (!isLocal && !/\.[A-Za-z]{2,}$/.test(hostname)) {
+          alert("Please enter a valid domain with a TLD (for example: .com, .co, .io) or a valid local address.");
           return;
         }
       } catch (e) {
@@ -308,22 +691,31 @@
         }
 
         // Update Stored XSS status
-        if (errorTools.includes("stored_xss")) {
-          const sxssErr = errors.find(e => e.tool === "stored_xss");
-          updateStatus("sxss", "error", sxssErr.error.substring(0, 60));
-        } else {
-          const findings = data.stored_xss || [];
+        const vulns = data.vulnerabilities || [];
+
+        // Save scan results to localStorage for request_fix page
+        localStorage.setItem('lastScanResults', JSON.stringify({
+          url: url,
+          vulnerabilities: vulns
+        }));
+
+        // Helper to update specific tool status based on findings
+        const updateToolStatus = (toolId, type) => {
+          const findings = vulns.filter(v => v.vulnerability_type === type);
           if (findings.length > 0) {
-            const highConfidenceCount = findings.filter(f => f.confidence === "High").length;
-            let msg = `${findings.length} findings`;
-            if (highConfidenceCount > 0) {
-              msg = `⚠️ ${highConfidenceCount} HIGH RISK!`;
-            }
-            updateStatus("sxss", "success", msg);
+            updateStatus(toolId, "success", `⚠️ ${findings.length} FOUND!`);
           } else {
-            updateStatus("sxss", "success", "No vulnerabilities found");
+            updateStatus(toolId, "success", "No issues found");
           }
-        }
+        };
+
+        updateToolStatus("sxss", "Stored XSS");
+        updateToolStatus("rxss", "Reflected XSS");
+        updateToolStatus("lfi", "Local File Inclusion");
+        updateToolStatus("sqli", "SQL Injection");
+
+        // Display Vulnerability Cards
+        displayVulnerabilities(vulns);
 
         // Raw output
         resultBox.textContent = JSON.stringify(data, null, 2);
@@ -338,6 +730,41 @@
         btn.classList.remove("btn-loading");
         btn.textContent = "Start Scan";
       }
+    }
+
+    function displayVulnerabilities(vulns) {
+      const resultsDiv = document.getElementById("vulnResults");
+      const statsDiv = document.getElementById("vulnStats");
+      const totalText = document.getElementById("vulnTotalText");
+
+      resultsDiv.innerHTML = "";
+
+      if (vulns.length === 0) {
+        statsDiv.style.display = "none";
+        return;
+      }
+
+      statsDiv.style.display = "block";
+      totalText.innerText = `Found ${vulns.length} Vulnerabilities`;
+
+      vulns.forEach(v => {
+        const card = document.createElement("div");
+        card.className = "vuln-card";
+
+        const impactMarkup = v.impact ? `***"${v.impact}"***` : '***"Critical security risk identified."***';
+
+        // Encode URL parameters for the "Fix It" button
+        const fixUrl = `/request-fix?vulnerability=${encodeURIComponent(v.vulnerability_type)}&endpoint=${encodeURIComponent(v.url || v.endpoint)}`;
+
+        card.innerHTML = `
+          <h4>⚠️ ${v.vulnerability_type}</h4>
+          <div class="endpoint">${v.url || v.endpoint}</div>
+          <p><strong>Payload:</strong> <code>${v.payload || 'N/A'}</code></p>
+          <span class="impact">${impactMarkup}</span>
+          <a href="${fixUrl}" class="fix-it-btn">Fix It</a>
+        `;
+        resultsDiv.appendChild(card);
+      });
     }
 
     function updateStatus(feature, type, message) {

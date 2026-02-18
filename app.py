@@ -13,6 +13,9 @@ from scanner.normalizer import normalize
 from scanner.auth import login_and_get_cookies
 from scanner.utils import check_url_exists
 from scanner.stored_xss_scanner import run_stored_xss_scan
+from scanner.reflected_xss_scanner import run_reflected_xss_scan
+from scanner.lfi_scanner import run_lfi_scan
+from scanner.sqli_scanner import run_sqli_scan
 from scanner.js_parser import extract_api_endpoints_from_js
 import requests
 
@@ -162,24 +165,37 @@ def scan():
     print("\n[STEP 4] Normalizing results...")
     result = normalize(target_url, katana_urls, paramspider_endpoints, form_endpoints + js_endpoints)
 
-    # Step 5: Stored XSS Scan
+    # Step 5: Vulnerability Scanning
+    print("\n[STEP 5] Running Vulnerability Scans...")
     try:
-        print("\n[STEP 5] Running Stored XSS scan...")
-        # Create a session and load cookies if available
         session = requests.Session()
         if cookies:
             session.cookies.update(cookies)
         
+        # 5.1 Stored XSS
         stored_findings = run_stored_xss_scan(
             target_url,
             result["endpoints"],
             session,
             discovered_urls=result["discovered_urls"]
         )
-        result["stored_xss"] = stored_findings
+        
+        # 5.2 Reflected XSS
+        reflected_findings = run_reflected_xss_scan(target_url, result["endpoints"], session)
+        
+        # 5.3 LFI
+        lfi_findings = run_lfi_scan(target_url, result["endpoints"], session)
+        
+        # 5.4 SQLi
+        sqli_findings = run_sqli_scan(target_url, result["endpoints"], session)
+        
+        # Merge all vulnerabilities
+        all_vulnerabilities = stored_findings + reflected_findings + lfi_findings + sqli_findings
+        result["vulnerabilities"] = all_vulnerabilities
+        result["stored_xss"] = stored_findings # Keep for backward compat if needed
     except Exception as e:
-        errors.append({"tool": "stored_xss", "error": str(e)})
-        print(f"[STEP 5] Stored XSS scanner error: {e}")
+        errors.append({"tool": "vulnerability_scanner", "error": str(e)})
+        print(f"[STEP 5] Vulnerability scanner error: {e}")
         traceback.print_exc()
 
     # Attach errors if any tools failed
