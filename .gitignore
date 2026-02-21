@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 results/
+.venv/
+database.db
+scanner.log
+scan_output.json

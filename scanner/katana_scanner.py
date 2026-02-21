@@ -43,9 +43,8 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=True):
             )
 
     # URL Existence Check
-    print(f"[katana] Checking if {target_url} is reachable...")
     if not check_url_exists(target_url):
-        print(f"[katana] Target {target_url} is unreachable. Skipping scan.")
+        print(f"[!] Katana: Target {target_url} is unreachable. Skipping.")
         return []
 
     cmd = [
@@ -60,23 +59,21 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=True):
     if headless:
         cmd.append("-headless")
 
-    # Smart Scoping: If the URL has a path (like /user), stay within that path
-    # This avoids crawling the entire domain on large sites like GitHub.
+    # Smart Scoping: If the URL has a path and it's not a local target, keep within it
     parsed = urlparse(target_url)
-    if parsed.path and parsed.path != "/":
-        # Escape for regex if needed, but for simple paths it's fine
-        # We use a broad regex that matches the domain + path
+    is_local = parsed.hostname in ["localhost", "127.0.0.1"]
+    
+    if parsed.path and parsed.path != "/" and not is_local:
         scope_regex = f"^{parsed.scheme}://(www\\.)?{parsed.netloc}{parsed.path}"
-        print(f"[katana] Using path-based scope: {scope_regex}")
+        cmd.extend(["-cs", scope_regex])
+    elif is_local:
+        # For localhost, always scope to the whole "domain"
+        scope_regex = f"^{parsed.scheme}://(www\\.)?{parsed.netloc}"
         cmd.extend(["-cs", scope_regex])
 
-    # Add authentication cookies if provided
     if cookies:
         cookie_string = "; ".join([f"{k}={v}" for k, v in cookies.items()])
-        print(f"[katana] Passing pre-captured cookies to Katana")
         cmd.extend(["-H", f"Cookie: {cookie_string}"])
-
-    print(f"[katana] Executing: {' '.join(cmd)}")
 
     stdout = ""
     try:
@@ -88,21 +85,17 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=True):
         )
         stdout = result.stdout or ""
         if result.returncode != 0:
-            print(f"[katana] Command failed with return code {result.returncode}")
+            print(f"[!] Katana: Command failed with code {result.returncode}")
             if result.stderr:
-                print(f"[katana] STDERR: {result.stderr.strip()}")
+                print(f"[!] Katana: STDERR: {result.stderr.strip()}")
 
     except subprocess.TimeoutExpired as e:
-        print(f"[katana] Timed out after {timeout}s for {target_url}")
-        # Return whatever we captured so far
+        print(f"[!] Katana: Timed out after {timeout}s")
         if e.stdout:
             stdout = e.stdout if isinstance(e.stdout, str) else e.stdout.decode()
-        
-        if stdout:
-            print(f"[katana] Using {len(stdout.splitlines())} partial results captured before timeout")
-    except Exception as e:
-        print(f"[katana] Error: {e}")
-        return []
+    except Exception:
+        # Silently fail for individual pages to avoid spamming the log
+        return [] # Changed from `return endpoints` to `return []` as `endpoints` is not defined here.
 
     urls = []
     if stdout:
@@ -119,5 +112,4 @@ def run_katana(target_url, depth=3, timeout=120, cookies=None, headless=True):
             seen.add(url)
             unique_urls.append(url)
 
-    print(f"[katana] Final: Discovered {len(unique_urls)} URLs for {target_url}")
     return unique_urls

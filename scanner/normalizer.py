@@ -30,6 +30,25 @@ def normalize(target, katana_urls, paramspider_endpoints, form_endpoints):
     all_endpoints = []
     seen_hashes = set()
 
+    # Add Katana URLs as potential GET endpoints
+    for url in katana_urls:
+        # Ignore static assets for vulnerability scanning
+        if any(url.endswith(ext) for ext in [".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2"]):
+            continue
+            
+        # Strip query string for hashing purposes (as we add empty params list)
+        clean_url = url.split('?')[0]
+        ep = {
+            "url": clean_url,
+            "method": "GET",
+            "params": [],
+            "source": "katana"
+        }
+        h = _endpoint_hash(ep)
+        if h not in seen_hashes:
+            seen_hashes.add(h)
+            all_endpoints.append(ep)
+
     # Add ParamSpider endpoints
     for ep in paramspider_endpoints:
         h = _endpoint_hash(ep)

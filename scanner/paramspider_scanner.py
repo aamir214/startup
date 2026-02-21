@@ -26,13 +26,17 @@ def run_paramspider(target_url, timeout=90):
     parsed = urlparse(target_url)
     domain = parsed.hostname
     if not domain:
-        print(f"[paramspider] Could not extract domain from {target_url}")
+        print(f"[!] ParamSpider: Could not extract domain from {target_url}")
+        return []
+
+    # Localhost Check - ParamSpider is for web archives, not local testing
+    if domain in ["localhost", "127.0.0.1"]:
+        print(f"[*] ParamSpider: Skipping for local target {domain} (historical data not applicable)")
         return []
 
     # URL Existence Check
-    print(f"[paramspider] Checking if {target_url} is reachable...")
     if not check_url_exists(target_url):
-        print(f"[paramspider] Target {target_url} is unreachable. Skipping scan.")
+        print(f"[!] ParamSpider: Target {target_url} is unreachable. Skipping.")
         return []
 
     # Find paramspider
@@ -63,10 +67,10 @@ def run_paramspider(target_url, timeout=90):
             timeout=timeout,
         )
     except subprocess.TimeoutExpired:
-        print(f"[paramspider] Timed out after {timeout}s for {domain}")
+        print(f"[!] ParamSpider: Timed out after {timeout}s for {domain}")
         return []
     except Exception as e:
-        print(f"[paramspider] Error: {e}")
+        print(f"[!] ParamSpider: Error: {e}")
         return []
 
     # ParamSpider saves output to results/<domain>.txt
@@ -79,9 +83,7 @@ def run_paramspider(target_url, timeout=90):
         if possible_files:
             output_file = possible_files[0]
         else:
-            print(f"[paramspider] No output file found for {domain}")
-            if result.stdout:
-                print(f"[paramspider] stdout: {result.stdout[:500]}")
+            print(f"[!] ParamSpider: No archived data found for {domain}")
             return []
 
     endpoints = []
@@ -90,7 +92,7 @@ def run_paramspider(target_url, timeout=90):
         with open(output_file, "r") as f:
             lines = f.readlines()
     except Exception as e:
-        print(f"[paramspider] Error reading output: {e}")
+        print(f"[!] ParamSpider: Error reading output: {e}")
         return []
 
     for line in lines:
@@ -121,7 +123,8 @@ def run_paramspider(target_url, timeout=90):
                 "source": "paramspider",
             })
 
-    print(f"[paramspider] Found {len(endpoints)} parameterized URLs for {domain}")
+    if endpoints:
+        print(f"[+] ParamSpider: Found {len(endpoints)} parameterized URLs")
 
     # Cleanup output file
     try:

@@ -82,9 +82,8 @@ def scan():
         return jsonify({"error": "Invalid URL format"}), 400
 
     # Early URL existence check
-    print(f"[SCAN] Verifying target URL: {target_url}")
     if not check_url_exists(target_url):
-        print(f"[SCAN] Target URL is unreachable: {target_url}")
+        print(f"[!] Target URL is unreachable: {target_url}")
         return jsonify({
             "error": "Target URL is unreachable",
             "target": target_url,
@@ -97,76 +96,75 @@ def scan():
     form_endpoints = []
     cookies = None
 
+    auth_discovered_links = []
     # Step 0: Authentication (if requested)
     if username and password:
-        print(f"\n[STEP 0] Performing login for user: {username}")
-        cookies = login_and_get_cookies(target_url, username, password)
-        if cookies:
-            print(f"[STEP 0] Auth successful, captured cookies.")
+        print(f"[*] Performing login for user: {username}")
+        auth_result = login_and_get_cookies(target_url, username, password)
+        if auth_result:
+            cookies = auth_result.get("cookies")
+            auth_discovered_links = auth_result.get("discovered_links", [])
+            # If login redirected us (e.g., to /dashboard), use that as an extra discovery seed
+            final_url = auth_result.get("final_url")
+            if final_url and final_url != target_url:
+                print(f"[+] Auth successful, landed at: {final_url}")
+                target_url = final_url
+            else:
+                print(f"[+] Auth successful, captured session cookies")
         else:
-            print(f"[STEP 0] Auth failed, proceeding without authentication.")
+            print(f"[!] Auth failed, proceeding without authentication")
 
     # Step 1: Katana — Endpoint Discovery
-    print(f"\n{'='*50}")
-    print(f"[SCAN] Starting scan for: {target_url}")
-    print(f"{'='*50}")
+    print(f"\n[*] Starting scan for: {target_url}")
 
     try:
-        print("\n[STEP 1] Running Katana for endpoint discovery...")
+        print("[*] Running Katana for endpoint discovery...")
         katana_urls = run_katana(target_url, cookies=cookies)
-    except FileNotFoundError as e:
-        errors.append({"tool": "katana", "error": str(e)})
-        print(f"[STEP 1] Katana not found: {e}")
+        # Merge manually discovered links from auth landing page
+        if auth_discovered_links:
+            katana_urls = list(set(katana_urls + auth_discovered_links))
+        print(f"[+] Discovery: Found {len(katana_urls)} URLs total")
     except Exception as e:
         errors.append({"tool": "katana", "error": str(e)})
-        print(f"[STEP 1] Katana error: {e}")
-        traceback.print_exc()
+        print(f"[!] Katana error: {e}")
 
-    # Step 2: ParamSpider — GET Parameter Mining
+    # Step 2: ParamSpider
     try:
-        print("\n[STEP 2] Running ParamSpider for GET parameters...")
         paramspider_endpoints = run_paramspider(target_url)
-    except FileNotFoundError as e:
-        errors.append({"tool": "paramspider", "error": str(e)})
-        print(f"[STEP 2] ParamSpider not found: {e}")
     except Exception as e:
         errors.append({"tool": "paramspider", "error": str(e)})
-        print(f"[STEP 2] ParamSpider error: {e}")
-        traceback.print_exc()
+        print(f"[!] ParamSpider error: {e}")
 
     # Step 3: BeautifulSoup — Form Extraction
     try:
-        # Use Katana URLs if available, otherwise just scan the target
         urls_to_scan = katana_urls if katana_urls else [target_url]
-        print(f"\n[STEP 3] Running form scanner on {len(urls_to_scan)} URLs...")
+        print(f"[*] Running form scanner on {len(urls_to_scan)} URLs...")
         form_endpoints = run_form_scanner(urls_to_scan, cookies=cookies)
+        print(f"[+] Form Scanner: Found {len(form_endpoints)} forms")
     except Exception as e:
         errors.append({"tool": "beautifulsoup", "error": str(e)})
-        print(f"[STEP 3] Form scanner error: {e}")
-        traceback.print_exc()
+        print(f"[!] Form scanner error: {e}")
 
-    # Step 3.5: JS Parsing — Extract hidden API endpoints
+    # Step 3.5: JS Parsing
     js_endpoints = []
     try:
         js_urls = [u for u in katana_urls if u.endswith(".js")]
         if js_urls:
-            print(f"\n[STEP 3.5] Running JS parser on {len(js_urls)} files...")
-            # Use a session for JS parsing
+            print(f"[*] Running JS parser on {len(js_urls)} files...")
             parsing_session = requests.Session()
             if cookies:
                 parsing_session.cookies.update(cookies)
             js_endpoints = extract_api_endpoints_from_js(js_urls, target_url, session=parsing_session)
+            print(f"[+] JS Parser: Found {len(js_endpoints)} endpoints")
     except Exception as e:
         errors.append({"tool": "js_parser", "error": str(e)})
-        print(f"[STEP 3.5] JS parser error: {e}")
-        traceback.print_exc()
+        print(f"[!] JS parser error: {e}")
 
     # Step 4: Normalize
-    print("\n[STEP 4] Normalizing results...")
     result = normalize(target_url, katana_urls, paramspider_endpoints, form_endpoints + js_endpoints)
 
     # Step 5: Vulnerability Scanning
-    print("\n[STEP 5] Running Vulnerability Scans...")
+    print("[*] Running vulnerability scans...")
     try:
         session = requests.Session()
         if cookies:
@@ -198,13 +196,7 @@ def scan():
         print(f"[STEP 5] Vulnerability scanner error: {e}")
         traceback.print_exc()
 
-    # Attach errors if any tools failed
-    if errors:
-        result["errors"] = errors
-
-    print(f"\n{'='*50}")
-    print(f"[SCAN] Complete for: {target_url}")
-    print(f"{'='*50}\n")
+    print(f"[+] Scan complete: {len(all_vulnerabilities)} vulnerabilities found")
 
     return jsonify(result)
 

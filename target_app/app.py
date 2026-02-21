@@ -84,8 +84,18 @@ def login():
 def dashboard():
     session = request.cookies.get('session_id')
     if session == 'fake-secret-session-token':
-        return "<h1>Welcome to Admin Dashboard</h1><p>You are authenticated.</p>"
+        return "<h1>Welcome to Admin Dashboard</h1><p>You are authenticated.</p><a href='/admin/settings'>Admin Settings</a>"
     return redirect(url_for('login'))
+
+@app.route('/admin/settings')
+def admin_settings():
+    session = request.cookies.get('session_id')
+    if session != 'fake-secret-session-token':
+        return redirect(url_for('login'))
+    
+    msg = request.args.get('msg', 'Welcome to Settings')
+    # VULNERABILITY: Reflected XSS (Admin Only)
+    return f"<h1>Admin Settings</h1><p>Message: {msg}</p><a href='/dashboard'>Back to Dashboard</a>"
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

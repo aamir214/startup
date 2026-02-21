@@ -21,11 +21,10 @@ def extract_api_endpoints_from_js(js_urls, base_url, session=None):
         r'fetch\(["\']([\w\-/]*)["\']',
     ]
     
-    print(f"\n[JS-PARSER] Analyzing {len(js_urls)} JS files...")
+    # Analysis markers removed from internal loop to reduce spam
     
     for js_url in js_urls:
         try:
-            print(f"[JS-PARSER] Downloading: {js_url}")
             r = session.get(js_url, timeout=10)
             if r.status_code == 200:
                 content = r.text
@@ -52,10 +51,7 @@ def extract_api_endpoints_from_js(js_urls, base_url, session=None):
                                     "source": "js_parser"
                                 }
                                 api_endpoints.append(endpoint)
-            else:
-                print(f"[JS-PARSER] Skipping {js_url} (Status {r.status_code})")
-        except Exception as e:
-            print(f"[JS-PARSER] Error parsing {js_url}: {e}")
+        except Exception:
             continue
             
     # Deduplicate
@@ -67,5 +63,6 @@ def extract_api_endpoints_from_js(js_urls, base_url, session=None):
             seen.add(key)
             unique_endpoints.append(ep)
             
-    print(f"[JS-PARSER] Found {len(unique_endpoints)} potential API endpoints.")
+    if unique_endpoints:
+        print(f"[+] JS Parser: Found {len(unique_endpoints)} potential API endpoints")
     return unique_endpoints

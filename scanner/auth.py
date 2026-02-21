@@ -22,9 +22,25 @@ def login_and_get_cookies(login_url, username, password):
 
     try:
         # Step 1: Initial Investigation of the Login Page
-        print(f"[auth] Analyzing login page: {login_url}")
         res = session.get(login_url, timeout=15, verify=False)
         soup = BeautifulSoup(res.text, "html.parser")
+        
+        # Heuristic: If no forms found, try common login paths
+        if not soup.find_all("form"):
+            common_paths = ["/login", "/signin", "/auth", "/user/login"]
+            for path in common_paths:
+                try:
+                    try_url = urljoin(login_url, path)
+                    print(f"[*] Auth: Searching for login form at {try_url}...")
+                    res = session.get(try_url, timeout=5, verify=False)
+                    if res.status_code == 200:
+                        soup = BeautifulSoup(res.text, "html.parser")
+                        if soup.find_all("form"):
+                            login_url = try_url
+                            print(f"[+] Auth: Found login form at {try_url}")
+                            break
+                except Exception:
+                    continue
         
         # Step 2: Handle modern SPAs (Special case for Juice Shop and similar REST APIs)
         # If no form is found but it's a known JSON-heavy target, try standard REST endpoint
@@ -88,13 +104,23 @@ def login_and_get_cookies(login_url, username, password):
                 res = session.get(target_url, params=payload, timeout=15)
 
         # Step 4: Verify Success
-        # Check if we got any session-like cookies OR if the URL changed (redirect)
         captured_cookies = session.cookies.get_dict()
         if captured_cookies:
-            print(f"[auth] Success! Captured {len(captured_cookies)} cookies.")
-            return captured_cookies
+            print(f"[*] Auth: Success! Captured {len(captured_cookies)} cookies.")
+            
+            # Additional Discovery: Extract links from the landing page as a fallback for Katana
+            landing_soup = BeautifulSoup(res.text, "html.parser")
+            links = []
+            for a in landing_soup.find_all("a", href=True):
+                links.append(urljoin(res.url, a['href']))
+            
+            return {
+                "cookies": captured_cookies,
+                "final_url": res.url,
+                "discovered_links": list(set(links))
+            }
         else:
-            print(f"[auth] Login request finished (Status {res.status_code}), but no cookies were captured.")
+            print(f"[!] Auth: Login finished (Status {res.status_code}), but no cookies was captured.")
             if res.status_code < 400 and is_juice_shop:
                 # Juice Shop might use tokens in response body instead of just cookies
                 print("[auth] Potential Token-based auth detected in response.")
